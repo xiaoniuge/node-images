@@ -145,17 +145,17 @@ http://your-ip:8081/
 
 **创建nx-deployer 角色**
 
-![npm-role]( https://raw.githubusercontent.com/xiaoniuge/node-images/master/npm-role.png )
+![npm-role]( https://github.com/xiaoniuge/node-images/blob/master/images/nexus3/npm-role.png?raw=true )
 
 **创建deployer 用户 密码为：123456789**
 
-![npm-user]( https://raw.githubusercontent.com/xiaoniuge/node-images/master/npm-user.png )
+![npm-user]( https://github.com/xiaoniuge/node-images/blob/master/images/nexus3/npm-user.png?raw=true )
 
 
 
 **注意  Realms**
 
-![npm-realms]( https://raw.githubusercontent.com/xiaoniuge/node-images/master/npm-realms.png )
+![npm-realms]( https://github.com/xiaoniuge/node-images/blob/master/images/nexus3/npm-realms.png?raw=true )
 
 
 
