@@ -856,6 +856,264 @@ public class HashMap<K,V> extends AbstractMap<K,V>
         }
         return null;
     }
+    
+    /**
+     * {@inheritDoc}
+     * 只有在当前 Map 中 key 对应的值不存在或为 null 时才调用 mappingFunction
+ 	 * 并在 mappingFunction 执行结果非 null 时将结果跟 key 关联．
+     * mappingFunction 为空时 将抛出空指针异常
+     *
+     * <p>This method will, on a best-effort basis, throw a
+     * {@link ConcurrentModificationException} if it is detected that the
+     * mapping function modifies this map during computation.
+     * 
+     * @throws ConcurrentModificationException if it is detected that the
+     * mapping function modified this map
+     * 
+     */
+    @Override
+    public V computeIfAbsent(K key,Function<? super K, ? extends V> mappingFunction) {
+        if (mappingFunction == null) throw new NullPointerException();
+        int hash = hash(key);//计算hash
+        Node<K,V>[] tab; 
+        Node<K,V> first; 
+        int n, i;
+        int binCount = 0;
+        TreeNode<K,V> t = null;
+        Node<K,V> old = null;
+        // 如果为初始化则先进行初始化，
+        // resize（）方法在table为空时执行初始化逻辑
+        if (size > threshold || (tab = table) == null ||
+            (n = tab.length) == 0)
+            n = (tab = resize()).length;
+        // 下面的逻辑就是通过key找到节点node
+        if ((first = tab[i = (n - 1) & hash]) != null) {
+            if (first instanceof TreeNode)
+                old = (t = (TreeNode<K,V>)first).getTreeNode(hash, key);
+            else {
+                Node<K,V> e = first; 
+                K k;
+                do {
+                    if (e.hash == hash &&
+                        ((k = e.key) == key || (key != null && key.equals(k)))) {
+                        old = e;
+                        break;
+                    }
+                    ++binCount;
+                } while ((e = e.next) != null);
+            }
+            V oldValue;
+            // 如果key存在且其value！=null，则返回该value
+            if (old != null && (oldValue = old.value) != null) {
+                afterNodeAccess(old);
+                return oldValue;
+            }
+        }
+        int mc = modCount;
+        // 下面的逻辑是：如果没找到则新建节点，
+        // 节点value为Function返回值；如果找到但value为null，
+        // 则将Function返回值作为其value
+        V v = mappingFunction.apply(key);
+        if (mc != modCount) { throw new ConcurrentModificationException(); }
+        if (v == null) {
+            return null;
+        } else if (old != null) {
+            old.value = v;
+            afterNodeAccess(old);
+            return v;
+        }
+        else if (t != null)
+            t.putTreeVal(this, tab, hash, key, v);
+        else {
+            tab[i] = newNode(hash, key, v, first);
+            if (binCount >= TREEIFY_THRESHOLD - 1)
+                treeifyBin(tab, hash);
+        }
+        modCount = mc + 1;
+        ++size;
+        afterNodeInsertion(true);
+        return v;
+    }
+    
+    /**
+     * {@inheritDoc}
+     * 更新map中存在的且其value值不为null的键值对的值
+     *
+     * <p>This method will, on a best-effort basis, throw a
+     * {@link ConcurrentModificationException} if it is detected that the
+     * remapping function modifies this map during computation.
+     *
+     * @throws ConcurrentModificationException if it is detected that the
+     * remapping function modified this map 如果检测到重新映射功能修改了此map 
+     * 
+     */
+    @Override
+    public V computeIfPresent(K key,
+                              BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+        if (remappingFunction == null)
+            throw new NullPointerException();
+        Node<K,V> e; 
+        V oldValue;
+        int hash = hash(key);
+        if ((e = getNode(hash, key)) != null &&
+            (oldValue = e.value) != null) {
+            int mc = modCount;
+            V v = remappingFunction.apply(key, oldValue);
+            if (mc != modCount) { throw new ConcurrentModificationException(); }
+            if (v != null) {
+                e.value = v;
+                afterNodeAccess(e);
+                return v;
+            }
+            else
+                removeNode(hash, key, null, false, true);// v = null 则移除该节点
+        }
+        return null;
+    }
+    
+    /**
+     * {@inheritDoc}
+     * 计算指定键关联的映射值（没有映射值设置null），主要就是将BIFunction的结果值赋予key关联的映射值
+     * <p>This method will, on a best-effort basis, throw a
+     * {@link ConcurrentModificationException} if it is detected that the
+     * remapping function modifies this map during computation.
+     *
+     * @throws ConcurrentModificationException if it is detected that the
+     * remapping function modified this map
+     * 返回更新后的该key映射的value值，若key没有映射的value值，则返回null
+     */
+    @Override
+    public V compute(K key,
+                     BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
+        if (remappingFunction == null)
+            throw new NullPointerException();
+        int hash = hash(key);
+        Node<K,V>[] tab;
+        Node<K,V> first; 
+        int n, i;
+        int binCount = 0;
+        TreeNode<K,V> t = null;
+        Node<K,V> old = null;
+        if (size > threshold || (tab = table) == null ||
+            (n = tab.length) == 0)
+            n = (tab = resize()).length;
+        if ((first = tab[i = (n - 1) & hash]) != null) {
+            if (first instanceof TreeNode)
+                old = (t = (TreeNode<K,V>)first).getTreeNode(hash, key);
+            else {
+                Node<K,V> e = first; K k;
+                do {
+                    if (e.hash == hash &&
+                        ((k = e.key) == key || (key != null && key.equals(k)))) {
+                        old = e;
+                        break;
+                    }
+                    ++binCount;
+                } while ((e = e.next) != null);
+            }
+        }
+        V oldValue = (old == null) ? null : old.value;
+        int mc = modCount;
+        V v = remappingFunction.apply(key, oldValue);
+        if (mc != modCount) { throw new ConcurrentModificationException(); }
+        if (old != null) {
+            if (v != null) {
+                old.value = v;
+                afterNodeAccess(old);
+            }
+            else
+                removeNode(hash, key, null, false, true);
+        }
+        else if (v != null) {
+            if (t != null)
+                t.putTreeVal(this, tab, hash, key, v);
+            else {
+                tab[i] = newNode(hash, key, v, first);
+                if (binCount >= TREEIFY_THRESHOLD - 1)
+                    treeifyBin(tab, hash);
+            }
+            modCount = mc + 1;
+            ++size;
+            afterNodeInsertion(true);
+        }
+        return v;
+    }
+    
+    /**
+     * {@inheritDoc}
+     *
+     * <p>This method will, on a best-effort basis, throw a
+     * {@link ConcurrentModificationException} if it is detected that the
+     * remapping function modifies this map during computation.
+     *
+     * @throws ConcurrentModificationException if it is detected that the
+     * remapping function modified this map
+     */
+    @Override
+    public V merge(K key, V value,
+                   BiFunction<? super V, ? super V, ? extends V> remappingFunction) {
+        if (value == null)
+            throw new NullPointerException();
+        if (remappingFunction == null)
+            throw new NullPointerException();
+        int hash = hash(key);
+        Node<K,V>[] tab; 
+        Node<K,V> first; 
+        int n, i;
+        int binCount = 0;
+        TreeNode<K,V> t = null;
+        Node<K,V> old = null;
+        if (size > threshold || (tab = table) == null ||
+            (n = tab.length) == 0)
+            n = (tab = resize()).length;
+        if ((first = tab[i = (n - 1) & hash]) != null) {
+            if (first instanceof TreeNode)
+                old = (t = (TreeNode<K,V>)first).getTreeNode(hash, key);
+            else {
+                Node<K,V> e = first; K k;
+                do {
+                    if (e.hash == hash &&
+                        ((k = e.key) == key || (key != null && key.equals(k)))) {
+                        old = e;
+                        break;
+                    }
+                    ++binCount;
+                } while ((e = e.next) != null);
+            }
+        }
+        if (old != null) {
+            V v;
+            if (old.value != null) {
+                int mc = modCount;
+                v = remappingFunction.apply(old.value, value);
+                if (mc != modCount) {
+                    throw new ConcurrentModificationException();
+                }
+            } else {
+                v = value;
+            }
+            if (v != null) {
+                old.value = v;
+                afterNodeAccess(old);
+            }
+            else
+                removeNode(hash, key, null, false, true);
+            return v;
+        }
+        if (value != null) {
+            if (t != null)
+                t.putTreeVal(this, tab, hash, key, value);
+            else {
+                tab[i] = newNode(hash, key, value, first);
+                if (binCount >= TREEIFY_THRESHOLD - 1)
+                    treeifyBin(tab, hash);
+            }
+            ++modCount;
+            ++size;
+            afterNodeInsertion(true);
+        }
+        return value;
+    }
 }
 ```
 
