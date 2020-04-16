@@ -53,7 +53,7 @@ public class SwaggerController {
 	
     //接口的描述，以及请求方式
     @ApiOperation(value = "map",httpMethod = "POST")
-    //接口的参数描述，数据类型描述 （可以不写）
+    //接口的参数描述，数据类型描述 （body可以不写）
     @ApiImplicitParam(name = "user",value = "user实体类",required = true,dataType = "User")
     @PostMapping("/map")
     public User map(@RequestBody User user){
