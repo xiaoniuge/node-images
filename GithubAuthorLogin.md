@@ -2,7 +2,7 @@
 
 ### 1、调用https://github.com/login/oauth/authorize?client_id=GITHUB_CLIENT_ID&scope=user,public_repo
 
-### 2、指定回调地址，1操作之后会调用改地址，返回一个 code
+### 2、指定回调地址，1操作之后会调用该地址，返回一个 code
 
 ### 3、调用https://github.com/login/oauth/access_token?client_id=GITHUB_CLIENT_ID&client_secret=GITHUB_CLIENT_SECRET&code=code 获取access_token
 
